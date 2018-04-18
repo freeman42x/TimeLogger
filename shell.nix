@@ -4,14 +4,19 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, base, stdenv }:
+  f = { mkDerivation, base, esqueleto, persistent
+      , persistent-sqlite, persistent-template, stdenv, text, time, X11
+      }:
       mkDerivation {
         pname = "TimeLogger";
         version = "0.1.0.0";
         src = ./.;
         isLibrary = false;
         isExecutable = true;
-        executableHaskellDepends = [ base ];
+        executableHaskellDepends = [
+          base esqueleto persistent persistent-sqlite persistent-template
+          text time X11
+        ];
         description = "Time logger";
         license = stdenv.lib.licenses.mit;
       };
