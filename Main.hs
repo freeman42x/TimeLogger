@@ -15,11 +15,11 @@ import           Control.Monad.Logger
 import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.Resource.Internal
 import           Data.Function
-import           Data.List
 import           Data.Text                             (Text)
+import           Data.Text.Lazy                        (pack, toStrict)
 import           Data.Time.Clock
 import           Database.Esqueleto
-import           Database.Persist
+import           Database.Persist                      (insert)
 import           Database.Persist.Sqlite               (runMigration, runSqlite)
 import           Database.Persist.TH                   (mkMigrate, mkPersist,
                                                         persistLowerCase, share,
@@ -54,15 +54,18 @@ loop d = do
   (w, _) <- getInputFocus d
   a <- internAtom d "_NET_WM_NAME" False
   p <- getTextProperty d w a
-  currentWindowTitle <- wcTextPropertyToTextList d p
+  currentWindowTitles <- wcTextPropertyToTextList d p
+  let currentWindowTitle = concat currentWindowTitles
   runDB $ do
     previousLogItem <- select $ from $ \l -> do
             orderBy [desc (l ^. LogItemId)]
             limit 1
             return (l ^. LogItemTitle)
-    liftIO $ print previousLogItem
-      -- if title changed then add new row else update `end`
-      -- if (currentWindowTitle == "") then return ()
-      -- print previousLogItem
+    liftIO $
+      if [Value (toStrict $ pack currentWindowTitle)] == previousLogItem
+        then runDB $
+          insert $ LogItem "equal" time time
+        else runDB $
+          insert $ LogItem "different" time time
   threadDelay 1000000
   loop d
