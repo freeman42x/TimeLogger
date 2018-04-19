@@ -36,6 +36,10 @@ LogItem
    deriving Show
 |]
 
+-- data Item = Item { id    :: Int
+--                  , title :: String
+--                  } deriving (Show)
+
 runDB :: ReaderT SqlBackend (NoLoggingT (ResourceT IO)) a -> IO a
 runDB = runSqlite "db.sqlite"
 
@@ -57,15 +61,18 @@ loop d = do
   currentWindowTitles <- wcTextPropertyToTextList d p
   let currentWindowTitle = concat currentWindowTitles
   runDB $ do
-    previousLogItem <- select $ from $ \l -> do
-            orderBy [desc (l ^. LogItemId)]
+    previousLogItem <- select $ from $ \li -> do
+            orderBy [desc (li ^. LogItemId)]
             limit 1
-            return (l ^. LogItemTitle)
-    liftIO $
-      if [Value (toStrict $ pack currentWindowTitle)] == previousLogItem
-        then runDB $
-          insert $ LogItem "equal" time time
-        else runDB $
-          insert $ LogItem "different" time time
+            return (li ^. LogItemTitle) -- li ^. LogItemId,
+      -- not nub case vvv
+    if [Value (toStrict $ pack currentWindowTitle)] == previousLogItem
+      then
+        update $ \li -> do
+           set li [LogItemTitle =. val "anna@example.com"]
+           where_ (li ^. LogItemTitle ==. val "lolwut")
+      else do
+        insert $ LogItem "different" time time
+        return ()
   threadDelay 1000000
   loop d
