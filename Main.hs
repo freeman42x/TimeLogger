@@ -15,6 +15,7 @@ import           Control.Monad.Logger
 import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.Resource.Internal
 import           Data.Function
+import           Data.List                             (null)
 import           Data.Text                             (Text)
 import           Data.Text.Lazy                        (pack, toStrict)
 import           Data.Time.Clock
@@ -65,12 +66,13 @@ loop d = do
             orderBy [desc (li ^. LogItemId)]
             limit 1
             return (li ^. LogItemTitle) -- li ^. LogItemId,
-      -- not nub case vvv
-    if [Value (toStrict $ pack currentWindowTitle)] == previousLogItem
-      then
+    if not (null previousLogItem)
+      && ([Value (toStrict $ pack currentWindowTitle)] == previousLogItem)
+      then do
+        -- let logItemKey = unValue $ fst $ head test
         update $ \li -> do
            set li [LogItemTitle =. val "anna@example.com"]
-           where_ (li ^. LogItemTitle ==. val "lolwut")
+           where_ (li ^. LogItemId ==. val (LogItemKey $ SqlBackendKey 1))
       else do
         insert $ LogItem "different" time time
         return ()
