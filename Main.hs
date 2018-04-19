@@ -72,9 +72,10 @@ loop d = do
       == unValue (snd $ head previousLogItem)) -- extract / safe Haskell
       then do
         let logItemKey = unValue (fst $ head previousLogItem)
+        let logItemTitle = unValue (snd $ head previousLogItem) -- dedup
         update $ \li -> do
-           set li [LogItemTitle =. val "anna@example.com"]
-           where_ (li ^. LogItemId ==. val (LogItemKey $ SqlBackendKey 1))
+           set li [LogItemTitle =. val logItemTitle]
+           where_ (li ^. LogItemId ==. val logItemKey)
       else do
         insert $ LogItem "different" time time
         return ()
