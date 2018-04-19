@@ -77,7 +77,7 @@ loop d = do
            set li [LogItemTitle =. val logItemTitle]
            where_ (li ^. LogItemId ==. val logItemKey)
       else do
-        insert $ LogItem "different" time time
+        insert $ LogItem (toStrict $ pack currentWindowTitle) time time -- dedup
         return ()
   threadDelay 1000000
   loop d
