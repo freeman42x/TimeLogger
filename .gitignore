@@ -1,2 +1,5 @@
 .cabal-sandbox
 dist
+db.sqlite
+db.sqlite-shm
+db.sqlite-wal

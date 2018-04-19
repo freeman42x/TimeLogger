@@ -16,10 +16,12 @@ module Main where
 
 import           Control.Concurrent
 import           Data.Time.Clock
+import           Database.Esqueleto
 import           Debug.Trace
 import           Graphics.X11
 import           Graphics.X11.Xlib.Extras
 
+import           Control.Monad.IO.Class   (liftIO)
 import           Data.Function
 import           Data.List
 import           Data.Text                (Text)
@@ -28,8 +30,8 @@ import           Database.Persist.Sqlite  (runMigration, runSqlite)
 import           Database.Persist.TH      (mkMigrate, mkPersist,
                                            persistLowerCase, share, sqlSettings)
 
-main1 :: IO ()
-main1 = do
+main :: IO ()
+main = do
   d <- openDisplay ""
   loop d
 
@@ -45,7 +47,6 @@ loop d = do
   threadDelay 1000000
   loop d
 
-
 share [mkPersist sqlSettings, mkMigrate "migrateTables"] [persistLowerCase|
 LogItem
    title    Text
@@ -54,9 +55,12 @@ LogItem
    deriving Show
 |]
 
-main2 :: IO ()
-main2 = runSqlite ":memory:" $ runMigration migrateTables
+main3 :: IO ()
+main3 =
+  runSqlite "db.sqlite" $ do
+    runMigration migrateTables
 
-main :: IO ()
-main = do
-  runSqlite "db.sqlite" $ runMigration migrateTables
+    tuts <- select $ from $ \l -> do
+            orderBy [desc (l ^. LogItemId)]
+            return (l ^. LogItemId, l ^. LogItemTitle)
+    liftIO $ print tuts
