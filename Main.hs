@@ -17,7 +17,8 @@ import           Control.Monad.Trans.Resource.Internal
 import           Data.Function
 import           Data.List                             (null)
 import           Data.Text                             (Text)
-import           Data.Text.Lazy                        (pack, toStrict)
+import           Data.Text.Lazy                        (fromStrict, pack,
+                                                        toStrict)
 import           Data.Time.Clock
 import           Database.Esqueleto
 import           Database.Persist                      (insert)
@@ -65,11 +66,12 @@ loop d = do
     previousLogItem <- select $ from $ \li -> do
             orderBy [desc (li ^. LogItemId)]
             limit 1
-            return (li ^. LogItemTitle) -- li ^. LogItemId,
+            return (li ^. LogItemId, li ^. LogItemTitle)
     if not (null previousLogItem)
-      && ([Value (toStrict $ pack currentWindowTitle)] == previousLogItem)
+      && (toStrict (pack currentWindowTitle)
+      == unValue (snd $ head previousLogItem)) -- extract / safe Haskell
       then do
-        -- let logItemKey = unValue $ fst $ head test
+        let logItemKey = unValue (fst $ head previousLogItem)
         update $ \li -> do
            set li [LogItemTitle =. val "anna@example.com"]
            where_ (li ^. LogItemId ==. val (LogItemKey $ SqlBackendKey 1))
