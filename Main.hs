@@ -74,7 +74,7 @@ loop d = do
         let logItemKey = unValue (fst $ head previousLogItem)
         let logItemTitle = unValue (snd $ head previousLogItem) -- dedup
         update $ \li -> do
-           set li [LogItemTitle =. val logItemTitle]
+           set li [LogItemEnd =. val time]
            where_ (li ^. LogItemId ==. val logItemKey)
       else do
         insert $ LogItem (toStrict $ pack currentWindowTitle) time time -- dedup
