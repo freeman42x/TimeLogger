@@ -28,5 +28,8 @@ executable TimeLogger
     , X11
     , time
     , text
+    , transformers
+    , monad-logger
+    , resourcet
   -- hs-source-dirs:
   default-language:    Haskell2010
