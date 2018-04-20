@@ -10,6 +10,9 @@
 module Main where
 
 import           Control.Concurrent
+import           Control.Exception.Extensible          (SomeException (..),
+                                                        bracket)
+import qualified Control.Exception.Extensible          as E
 import           Control.Monad.IO.Class                (liftIO)
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Reader
@@ -52,11 +55,13 @@ main =
 
 getWindowTitle :: Display -> IO String
 getWindowTitle d = do
-    (w, _) <- getInputFocus d
-    a <- internAtom d "_NET_WM_NAME" False
-    p <- getTextProperty d w a
-    currentWindowTitles <- wcTextPropertyToTextList d p
-    return $ concat currentWindowTitles
+  (w, _) <- getInputFocus d
+  let getProp =
+          (internAtom d "_NET_WM_NAME" False >>= getTextProperty d w)
+              `E.catch` \(SomeException _) -> getTextProperty d w wM_NAME
+      extract prop = do l <- wcTextPropertyToTextList d prop
+                        return $ if null l then "" else head l
+  bracket getProp (xFree . tp_value) extract `E.catch` \(SomeException _) -> return ""
 
 loop :: Display -> IO ()
 loop d = do

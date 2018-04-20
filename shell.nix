@@ -4,9 +4,9 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, base, esqueleto, monad-logger, persistent
-      , persistent-sqlite, persistent-template, resourcet, stdenv, text
-      , time, transformers, X11
+  f = { mkDerivation, base, esqueleto, extensible-exceptions
+      , monad-logger, persistent, persistent-sqlite, persistent-template
+      , resourcet, stdenv, text, time, transformers, X11
       }:
       mkDerivation {
         pname = "TimeLogger";
@@ -15,8 +15,9 @@ let
         isLibrary = false;
         isExecutable = true;
         executableHaskellDepends = [
-          base esqueleto monad-logger persistent persistent-sqlite
-          persistent-template resourcet text time transformers X11
+          base esqueleto extensible-exceptions monad-logger persistent
+          persistent-sqlite persistent-template resourcet text time
+          transformers X11
         ];
         description = "Time logger";
         license = stdenv.lib.licenses.mit;
