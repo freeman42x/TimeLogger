@@ -38,10 +38,6 @@ LogItem
    deriving Show
 |]
 
--- data Item = Item { id    :: Int
---                  , title :: String
---                  } deriving (Show)
-
 runDB :: ReaderT SqlBackend (NoLoggingT (ResourceT IO)) a -> IO a
 runDB = runSqlite "db.sqlite"
 
@@ -54,19 +50,24 @@ main =
       d <- openDisplay ""
       loop d
 
+getWindowTitle :: Display -> IO String
+getWindowTitle d = do
+    (w, _) <- getInputFocus d
+    a <- internAtom d "_NET_WM_NAME" False
+    p <- getTextProperty d w a
+    currentWindowTitles <- wcTextPropertyToTextList d p
+    return $ concat currentWindowTitles
+
 loop :: Display -> IO ()
 loop d = do
   time <- getCurrentTime
-  (w, _) <- getInputFocus d
-  a <- internAtom d "_NET_WM_NAME" False
-  p <- getTextProperty d w a
-  currentWindowTitles <- wcTextPropertyToTextList d p
-  let currentWindowTitle = concat currentWindowTitles
+  currentWindowTitle <- getWindowTitle d
   runDB $ do
     previousLogItem <- select $ from $ \li -> do
             orderBy [desc (li ^. LogItemId)]
             limit 1
             return (li ^. LogItemId, li ^. LogItemTitle)
+    liftIO $ print currentWindowTitle
     if not (null previousLogItem)
       && (toStrict (pack currentWindowTitle)
       == unValue (snd $ head previousLogItem)) -- extract / safe Haskell
@@ -81,3 +82,7 @@ loop d = do
         return ()
   threadDelay 1000000
   loop d
+
+-- TODO:
+-- BUG *** Exception: user error (getTextProperty) on HexChat window
+-- BUG getting FocusProxy instead of proper window title for Freeplane or DataGrip
