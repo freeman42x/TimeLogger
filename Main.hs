@@ -86,23 +86,16 @@ followTreeUntil dpy cond = go
                  if p == 0 then return w
                            else go p
 
-isInteresting :: Display -> Window -> IO Bool
-isInteresting d w = do
-    a <- internAtom d "_NET_WM_WINDOW_TYPE" False
-    dock <- internAtom d "_NET_WM_WINDOW_TYPE_DOCK" False
-    desk <- internAtom d "_NET_WM_WINDOW_TYPE_DESKTOP" False
-    mbr <- getWindowProperty32 d a w
-    case mbr of
-        Just [r] -> return $ fromIntegral r `notElem` [dock, desk]
-        _        -> return True
+hasTitle :: Display -> Window -> IO Bool
+hasTitle d w = do
+  title <- getWindowTitle d w
+  return $ title /= ""
 
 getFocusedWindowTitle2 :: IO String
 getFocusedWindowTitle2 = do
   d <- openDisplay ""
   (w, _) <- getInputFocus d
-
-  wt <- followTreeUntil d (isInteresting d) w
-
+  wt <- followTreeUntil d (hasTitle d) w
   getWindowTitle d wt
 
 
