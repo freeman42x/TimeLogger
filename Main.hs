@@ -52,10 +52,36 @@ main =
       d <- openDisplay ""
       loop d
 
+loop :: Display -> IO ()
+loop d = do
+  time <- getCurrentTime
+  currentWindowTitle <- getFocusedWindowTitle d
+  runDB $ do
+    previousLogItem <- select $ from $ \li -> do
+            orderBy [desc (li ^. LogItemId)]
+            limit 1
+            return (li ^. LogItemId, li ^. LogItemTitle)
+    liftIO $ print currentWindowTitle
+    if not (null previousLogItem)
+      && (toStrict (pack currentWindowTitle)
+      == unValue (snd $ head previousLogItem)) -- extract / safe Haskell
+      then do
+        let logItemKey = unValue (fst $ head previousLogItem)
+        let logItemTitle = unValue (snd $ head previousLogItem) -- dedup
+        update $ \li -> do
+           set li [LogItemEnd =. val time]
+           where_ (li ^. LogItemId ==. val logItemKey)
+      else do
+        insert $ LogItem (toStrict $ pack currentWindowTitle) time time -- dedup
+        return ()
+  threadDelay 1000000
+  loop d
+
 getFocusedWindowTitle :: Display -> IO String
 getFocusedWindowTitle d = do
   (w, _) <- getInputFocus d
-  getWindowTitle d w
+  wt <- followTreeUntil d (hasTitle d) w
+  getWindowTitle d wt
 
 getWindowTitle :: Display -> Window -> IO String
 getWindowTitle d w = do
@@ -91,39 +117,5 @@ hasTitle d w = do
   title <- getWindowTitle d w
   return $ title /= ""
 
-getFocusedWindowTitle2 :: IO String
-getFocusedWindowTitle2 = do
-  d <- openDisplay ""
-  (w, _) <- getInputFocus d
-  wt <- followTreeUntil d (hasTitle d) w
-  getWindowTitle d wt
-
-
-loop :: Display -> IO ()
-loop d = do
-  time <- getCurrentTime
-  currentWindowTitle <- getFocusedWindowTitle d
-  runDB $ do
-    previousLogItem <- select $ from $ \li -> do
-            orderBy [desc (li ^. LogItemId)]
-            limit 1
-            return (li ^. LogItemId, li ^. LogItemTitle)
-    liftIO $ print currentWindowTitle
-    if not (null previousLogItem)
-      && (toStrict (pack currentWindowTitle)
-      == unValue (snd $ head previousLogItem)) -- extract / safe Haskell
-      then do
-        let logItemKey = unValue (fst $ head previousLogItem)
-        let logItemTitle = unValue (snd $ head previousLogItem) -- dedup
-        update $ \li -> do
-           set li [LogItemEnd =. val time]
-           where_ (li ^. LogItemId ==. val logItemKey)
-      else do
-        insert $ LogItem (toStrict $ pack currentWindowTitle) time time -- dedup
-        return ()
-  threadDelay 1000000
-  loop d
-
 -- TODO:
--- BUG *** Exception: user error (getTextProperty) on HexChat window
 -- BUG getting FocusProxy instead of proper window title for Freeplane or DataGrip
