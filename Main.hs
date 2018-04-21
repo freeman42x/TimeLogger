@@ -52,9 +52,13 @@ main =
       d <- openDisplay ""
       loop d
 
-getWindowTitle :: Display -> IO String
-getWindowTitle d = do
+getFocusedWindowTitle :: Display -> IO String
+getFocusedWindowTitle d = do
   (w, _) <- getInputFocus d
+  getWindowTitle d w
+
+getWindowTitle :: Display -> Window -> IO String
+getWindowTitle d w = do
   let getProp =
           (internAtom d "_NET_WM_NAME" False >>= getTextProperty d w)
           `catchIOError`
@@ -69,7 +73,7 @@ getWindowTitle d = do
 loop :: Display -> IO ()
 loop d = do
   time <- getCurrentTime
-  currentWindowTitle <- getWindowTitle d
+  currentWindowTitle <- getFocusedWindowTitle d
   runDB $ do
     previousLogItem <- select $ from $ \li -> do
             orderBy [desc (li ^. LogItemId)]
