@@ -70,6 +70,42 @@ getWindowTitle d w = do
   bracket getProp (xFree . tp_value) extract
       `catchIOError` \_ -> return ""
 
+getParent :: Display -> Window -> IO Window
+getParent dpy w = do
+  (_, parent, _) <- queryTree dpy w `catchIOError` const (return (0,0,[]))
+  return parent
+
+followTreeUntil :: Display -> (Window -> IO Bool) -> Window -> IO Window
+followTreeUntil dpy cond = go
+  where go w = do
+          match <- cond w
+          if match
+            then return w
+            else
+              do p <- getParent dpy w
+                 if p == 0 then return w
+                           else go p
+
+isInteresting :: Display -> Window -> IO Bool
+isInteresting d w = do
+    a <- internAtom d "_NET_WM_WINDOW_TYPE" False
+    dock <- internAtom d "_NET_WM_WINDOW_TYPE_DOCK" False
+    desk <- internAtom d "_NET_WM_WINDOW_TYPE_DESKTOP" False
+    mbr <- getWindowProperty32 d a w
+    case mbr of
+        Just [r] -> return $ fromIntegral r `notElem` [dock, desk]
+        _        -> return True
+
+getFocusedWindowTitle2 :: IO String
+getFocusedWindowTitle2 = do
+  d <- openDisplay ""
+  (w, _) <- getInputFocus d
+
+  wt <- followTreeUntil d (isInteresting d) w
+
+  getWindowTitle d wt
+
+
 loop :: Display -> IO ()
 loop d = do
   time <- getCurrentTime
