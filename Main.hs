@@ -80,7 +80,7 @@ loop d = do
 getFocusedWindowTitle :: Display -> IO String
 getFocusedWindowTitle d = do
   (w, _) <- getInputFocus d
-  wt <- followTreeUntil d (hasTitle d) w
+  wt <- followTreeUntil d (hasCorrectTitle d) w
   getWindowTitle d wt
 
 getWindowTitle :: Display -> Window -> IO String
@@ -112,10 +112,7 @@ followTreeUntil dpy cond = go
                  if p == 0 then return w
                            else go p
 
-hasTitle :: Display -> Window -> IO Bool
-hasTitle d w = do
+hasCorrectTitle :: Display -> Window -> IO Bool
+hasCorrectTitle d w = do
   title <- getWindowTitle d w
-  return $ title /= ""
-
--- TODO:
--- BUG getting FocusProxy instead of proper window title for Freeplane or DataGrip
+  return $ title /= "" && title /= "FocusProxy"
