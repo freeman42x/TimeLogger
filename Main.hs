@@ -10,8 +10,7 @@
 module Main where
 
 import           Control.Concurrent
-import           Control.Exception.Extensible          (SomeException (..),
-                                                        bracket)
+import           Control.Exception.Extensible          (bracket)
 import qualified Control.Exception.Extensible          as E
 import           Control.Monad.IO.Class                (liftIO)
 import           Control.Monad.Logger
@@ -32,6 +31,7 @@ import           Database.Persist.TH                   (mkMigrate, mkPersist,
 import           Debug.Trace
 import           Graphics.X11
 import           Graphics.X11.Xlib.Extras
+import           System.IO.Error                       (catchIOError)
 
 share [mkPersist sqlSettings, mkMigrate "migrateTables"] [persistLowerCase|
 LogItem
@@ -48,7 +48,6 @@ main :: IO ()
 main =
   runDB $ do
     runMigration migrateTables
-
     liftIO $ do
       d <- openDisplay ""
       loop d
@@ -58,10 +57,14 @@ getWindowTitle d = do
   (w, _) <- getInputFocus d
   let getProp =
           (internAtom d "_NET_WM_NAME" False >>= getTextProperty d w)
-              `E.catch` \(SomeException _) -> getTextProperty d w wM_NAME
+          `catchIOError`
+          (\_ -> getTextProperty d w wM_NAME)
+
       extract prop = do l <- wcTextPropertyToTextList d prop
                         return $ if null l then "" else head l
-  bracket getProp (xFree . tp_value) extract `E.catch` \(SomeException _) -> return ""
+
+  bracket getProp (xFree . tp_value) extract
+      `catchIOError` \_ -> return ""
 
 loop :: Display -> IO ()
 loop d = do
