@@ -48,14 +48,14 @@ main :: IO ()
 main =
   runDB $ do
     runMigration migrateTables
-    liftIO $ do
-      d <- openDisplay ""
-      loop d
+    liftIO loop
 
-loop :: Display -> IO ()
-loop d = do
+loop :: IO ()
+loop = do
+  d <- openDisplay ""
   time <- getCurrentTime
   currentWindowTitle <- getFocusedWindowTitle d
+  closeDisplay d
   runDB $ do
     previousLogItem <- select $ from $ \li -> do
             orderBy [desc (li ^. LogItemId)]
@@ -75,7 +75,7 @@ loop d = do
         insert $ LogItem (toStrict $ pack currentWindowTitle) time time -- dedup
         return ()
   threadDelay 1000000
-  loop d
+  loop
 
 getFocusedWindowTitle :: Display -> IO String
 getFocusedWindowTitle d = do
@@ -116,3 +116,6 @@ hasCorrectTitle :: Display -> Window -> IO Bool
 hasCorrectTitle d w = do
   title <- getWindowTitle d w
   return $ title /= "" && title /= "FocusProxy"
+
+-- TODO
+-- Meld has empty title. Fallback to process data (executable name)?
