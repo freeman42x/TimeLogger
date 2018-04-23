@@ -117,5 +117,35 @@ hasCorrectTitle d w = do
   title <- getWindowTitle d w
   return $ title /= "" && title /= "FocusProxy"
 
+getFocusedWindowPID :: Display -> IO String
+getFocusedWindowPID d = do
+  (w, _) <- getInputFocus d
+  wt <- followTreeUntil d (hasCorrectPID d) w
+  getWindowPID d wt
+
+getWindowPID :: Display -> Window -> IO String
+getWindowPID d w = do
+  nWP <- internAtom d "_NET_WM_PID" False
+  pid' <- getWindowProperty32 d nWP w
+  let pid = case pid' of
+              Just [pid''] -> show pid''
+              _            -> ""
+  return pid
+
+hasCorrectPID :: Display -> Window -> IO Bool
+hasCorrectPID d w = do
+  pid <- getWindowPID d w
+  return $ pid /= ""
+
+
+printPIDs :: IO ()
+printPIDs = do
+  d <- openDisplay ""
+  pid <- getFocusedWindowPID d
+  print pid
+  closeDisplay d
+  threadDelay 1000000
+  printPIDs
+
 -- TODO
 -- Meld has empty title. Fallback to process data (executable name)?
