@@ -93,21 +93,17 @@ data User = User
   , email :: String
   } deriving (Eq, Show, Generic)
 
--- data LogItem = LogItem
---   { title :: Text
---   , begin :: UTCTime
---   , end   :: UTCTime
---   } deriving (Eq, Show, Generic)
-
 instance ToJSON LogItem
 
 daily :: Servant.Handler [LogItem]
 daily = do
-  lis <- liftIO $ runDB $
-            select $ from $ \li -> do
-                    orderBy [desc (li ^. LogItemId)]
-                    limit 25
-                    return li
+  lis <- liftIO $ do
+    currentTime <- getCurrentTime
+    let oneDayAgo = addUTCTime (-nominalDay) currentTime
+    runDB $ select $ from $ \li -> do
+                     where_ (li ^. LogItemBegin >. val oneDayAgo)
+                     orderBy [desc (li ^. LogItemId)]
+                     return li
   let logItems = map entityVal lis
   return logItems
 
