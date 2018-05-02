@@ -103,8 +103,13 @@ instance ToJSON LogItem
 
 daily :: Servant.Handler [LogItem]
 daily = do
-  ct <- liftIO getCurrentTime
-  return [ LogItem "yo" ct ct ]
+  tp <- liftIO $ runDB $
+            select $ from $ \li -> do
+                    orderBy [desc (li ^. LogItemId)]
+                    limit 1
+                    return (li ^. LogItemId, li ^. LogItemBegin)
+  let itemBegin = unValue (snd $ head tp)
+  return [ LogItem "yo" itemBegin itemBegin ]
 
 loop :: IO ()
 loop = do
