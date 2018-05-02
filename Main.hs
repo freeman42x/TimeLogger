@@ -80,7 +80,7 @@ type UserAPI = "daily" :> Get '[Servant.JSON] [LogItem]
 
 server :: Servant.Server UserAPI
 server = return daily
-          :<|> static
+           :<|> static
 
 static :: Servant.Server StaticAPI
 static = Servant.serveDirectoryFileServer "static"
@@ -111,10 +111,13 @@ users =
   , User "Albert Einstein" 136 "ae@mc2.org"
   ]
 
+-- tried following: http://haskell-servant.readthedocs.io/en/stable/tutorial/Server.html#performing-io
+-- how can I perform an IO action here, I can't get the types to match up
 daily :: [LogItem]
-daily = [
-    LogItem "yo" undefined undefined
-  ]
+daily = --do
+  -- ct <- liftIO $ getCurrentTime
+  -- return
+  [ LogItem "yo" undefined undefined ]
 
 loop :: IO ()
 loop = do
