@@ -55,13 +55,14 @@ runDB :: ReaderT SqlBackend (NoLoggingT (ResourceT IO)) a -> IO a
 runDB = runSqlite "db.sqlite"
 
 main :: IO ()
-main = Wai.run 3003 $ Wai.logStdout $ compress app
-  where
-    compress :: Wai.Middleware
-    compress = Wai.gzip Wai.def { Wai.gzipFiles = Wai.GzipCompress }
-  -- runDB $ do
-  --   runMigration migrateTables
-  --   liftIO loop
+main = do
+  _ <- forkIO $ Wai.run 3003 $ Wai.logStdout $ compress app
+  runDB $ do
+    runMigration migrateTables
+    liftIO loop
+
+compress :: Wai.Middleware
+compress = Wai.gzip Wai.def { Wai.gzipFiles = Wai.GzipCompress }
 
 app :: Wai.Application
 app =
