@@ -37,5 +37,6 @@ executable TimeLogger
     , warp
     , servant
     , servant-server
+    , aeson
   -- hs-source-dirs:
   default-language:    Haskell2010

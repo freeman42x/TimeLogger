@@ -4,7 +4,7 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, base, esqueleto, extensible-exceptions
+  f = { mkDerivation, aeson, base, esqueleto, extensible-exceptions
       , monad-logger, persistent, persistent-sqlite, persistent-template
       , resourcet, servant, servant-server, stdenv, text, time
       , transformers, wai, wai-extra, warp, X11
@@ -16,7 +16,7 @@ let
         isLibrary = false;
         isExecutable = true;
         executableHaskellDepends = [
-          base esqueleto extensible-exceptions monad-logger persistent
+          aeson base esqueleto extensible-exceptions monad-logger persistent
           persistent-sqlite persistent-template resourcet servant
           servant-server text time transformers wai wai-extra warp X11
         ];

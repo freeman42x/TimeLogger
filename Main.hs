@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -19,6 +20,8 @@ import           Control.Monad.IO.Class                (liftIO)
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.Resource.Internal
+import           Data.Aeson
+import           Data.Aeson.Types
 import           Data.Function
 import           Data.List                             (null)
 import           Data.Proxy
@@ -33,13 +36,14 @@ import           Database.Persist.TH                   (mkMigrate, mkPersist,
                                                         persistLowerCase, share,
                                                         sqlSettings)
 import           Debug.Trace
+import           GHC.Generics                          (Generic)
 import           Graphics.X11
 import           Graphics.X11.Xlib.Extras
 import qualified Network.Wai                           as Wai
 import qualified Network.Wai.Handler.Warp              as Wai
 import qualified Network.Wai.Middleware.Gzip           as Wai
 import qualified Network.Wai.Middleware.RequestLogger  as Wai
-import           Servant                               ((:<|>) (..), (:>))
+import           Servant                               ((:<|>) (..), (:>), Get)
 import qualified Servant
 import           System.IO.Error                       (catchIOError)
 
@@ -65,17 +69,68 @@ compress :: Wai.Middleware
 compress = Wai.gzip Wai.def { Wai.gzipFiles = Wai.GzipCompress }
 
 app :: Wai.Application
-app =
-    Servant.serve (Proxy @ServerAPI)
-        static
-  where
-    static :: Servant.Server StaticAPI
-    static = Servant.serveDirectoryFileServer "static"
+app = Servant.serve userAPI2 server2
+-- app =
+--     Servant.serve (Proxy @ServerAPI)
+--         (static)
+  -- where
+  --   static :: Servant.Server StaticAPI
+  --   static = Servant.serveDirectoryFileServer "static"
+
+server1 :: Servant.Server UserAPI1
+server1 = return users1
+
+userAPI :: Proxy UserAPI1
+userAPI = Proxy
+
+type UserAPI1 = "users" :> Get '[Servant.JSON] [User]
+
+userAPI2 :: Proxy UserAPI2
+userAPI2 = Proxy
+
+type UserAPI2 = "users" :> Get '[Servant.JSON] [User]
+           :<|> "albert" :> Get '[Servant.JSON] User
+           :<|> "isaac" :> Get '[Servant.JSON] User
+           :<|> "static" :> Servant.Raw
+
+isaac :: User
+isaac = User "Isaac Newton" 372 "isaac@newton.co.uk"
+
+albert :: User
+albert = User "Albert Einstein" 136 "ae@mc2.org"
+
+users2 :: [User]
+users2 = [isaac, albert]
+
+static :: Servant.Server StaticAPI
+static = Servant.serveDirectoryFileServer "static"
+
+server2 :: Servant.Server UserAPI2
+server2 = return users2
+     :<|> return albert
+     :<|> return isaac
+     :<|> static
 
 type ServerAPI =
        StaticAPI
+       -- :<|> UserAPI1
+       -- :<|> "users" :> Get '[Servant.JSON] [User]
 
 type StaticAPI = "static" :> Servant.Raw
+
+data User = User
+  { name  :: String
+  , age   :: Int
+  , email :: String
+  } deriving (Eq, Show, Generic)
+
+instance ToJSON User
+
+users1 :: [User]
+users1 =
+  [ User "Isaac Newton"    372 "isaac@newton.co.uk"
+  , User "Albert Einstein" 136 "ae@mc2.org"
+  ]
 
 loop :: IO ()
 loop = do
