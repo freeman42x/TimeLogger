@@ -52,7 +52,7 @@ LogItem
    title    Text
    begin    UTCTime
    end      UTCTime
-   deriving Show
+   deriving Eq Show Generic
 |]
 
 runDB :: ReaderT SqlBackend (NoLoggingT (ResourceT IO)) a -> IO a
@@ -60,6 +60,7 @@ runDB = runSqlite "db.sqlite"
 
 main :: IO ()
 main = do
+  -- TODO v this must die with its parent thread
   _ <- forkIO $ Wai.run 3003 $ Wai.logStdout $ compress app
   runDB $ do
     runMigration migrateTables
@@ -74,11 +75,11 @@ app = Servant.serve userAPI server
 userAPI :: Proxy UserAPI
 userAPI = Proxy
 
-type UserAPI = "users" :> Get '[Servant.JSON] [User]
+type UserAPI = "daily" :> Get '[Servant.JSON] [LogItem]
           :<|> "static" :> Servant.Raw
 
 server :: Servant.Server UserAPI
-server = return users
+server = return daily
           :<|> static
 
 static :: Servant.Server StaticAPI
@@ -94,12 +95,25 @@ data User = User
   , email :: String
   } deriving (Eq, Show, Generic)
 
+-- data LogItem = LogItem
+--   { title :: Text
+--   , begin :: UTCTime
+--   , end   :: UTCTime
+--   } deriving (Eq, Show, Generic)
+
 instance ToJSON User
+
+instance ToJSON LogItem
 
 users :: [User]
 users =
   [ User "Isaac Newton"    372 "isaac@newton.co.uk"
   , User "Albert Einstein" 136 "ae@mc2.org"
+  ]
+
+daily :: [LogItem]
+daily = [
+    LogItem "yo" undefined undefined
   ]
 
 loop :: IO ()
