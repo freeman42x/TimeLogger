@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -5,7 +6,9 @@
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE QuasiQuotes                #-}
 {-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeOperators              #-}
 
 module Main where
 
@@ -18,6 +21,7 @@ import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.Resource.Internal
 import           Data.Function
 import           Data.List                             (null)
+import           Data.Proxy
 import           Data.Text                             (Text)
 import           Data.Text.Lazy                        (fromStrict, pack,
                                                         toStrict)
@@ -31,6 +35,12 @@ import           Database.Persist.TH                   (mkMigrate, mkPersist,
 import           Debug.Trace
 import           Graphics.X11
 import           Graphics.X11.Xlib.Extras
+import qualified Network.Wai                           as Wai
+import qualified Network.Wai.Handler.Warp              as Wai
+import qualified Network.Wai.Middleware.Gzip           as Wai
+import qualified Network.Wai.Middleware.RequestLogger  as Wai
+import           Servant                               ((:<|>) (..), (:>))
+import qualified Servant
 import           System.IO.Error                       (catchIOError)
 
 share [mkPersist sqlSettings, mkMigrate "migrateTables"] [persistLowerCase|
@@ -45,10 +55,26 @@ runDB :: ReaderT SqlBackend (NoLoggingT (ResourceT IO)) a -> IO a
 runDB = runSqlite "db.sqlite"
 
 main :: IO ()
-main =
-  runDB $ do
-    runMigration migrateTables
-    liftIO loop
+main = Wai.run 3003 $ Wai.logStdout $ compress app
+  where
+    compress :: Wai.Middleware
+    compress = Wai.gzip Wai.def { Wai.gzipFiles = Wai.GzipCompress }
+  -- runDB $ do
+  --   runMigration migrateTables
+  --   liftIO loop
+
+app :: Wai.Application
+app =
+    Servant.serve (Proxy @ServerAPI)
+        static
+  where
+    static :: Servant.Server StaticAPI
+    static = Servant.serveDirectoryFileServer "static"
+
+type ServerAPI =
+       StaticAPI
+
+type StaticAPI = "static" :> Servant.Raw
 
 loop :: IO ()
 loop = do

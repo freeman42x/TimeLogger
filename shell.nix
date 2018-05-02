@@ -6,7 +6,8 @@ let
 
   f = { mkDerivation, base, esqueleto, extensible-exceptions
       , monad-logger, persistent, persistent-sqlite, persistent-template
-      , resourcet, stdenv, text, time, transformers, X11
+      , resourcet, servant, servant-server, stdenv, text, time
+      , transformers, wai, wai-extra, warp, X11
       }:
       mkDerivation {
         pname = "TimeLogger";
@@ -16,8 +17,8 @@ let
         isExecutable = true;
         executableHaskellDepends = [
           base esqueleto extensible-exceptions monad-logger persistent
-          persistent-sqlite persistent-template resourcet text time
-          transformers X11
+          persistent-sqlite persistent-template resourcet servant
+          servant-server text time transformers wai wai-extra warp X11
         ];
         description = "Time logger";
         license = stdenv.lib.licenses.mit;
