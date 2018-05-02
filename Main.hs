@@ -77,16 +77,16 @@ userAPI = Proxy
 type UserAPI = "users" :> Get '[Servant.JSON] [User]
           :<|> "static" :> Servant.Raw
 
-static :: Servant.Server StaticAPI
-static = Servant.serveDirectoryFileServer "static"
-
 server :: Servant.Server UserAPI
 server = return users
           :<|> static
 
-type ServerAPI = StaticAPI
+static :: Servant.Server StaticAPI
+static = Servant.serveDirectoryFileServer "static"
 
 type StaticAPI = "static" :> Servant.Raw
+
+-- TODO return all daily logs
 
 data User = User
   { name  :: String
