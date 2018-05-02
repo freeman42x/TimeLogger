@@ -14,6 +14,7 @@
 module Main where
 
 import           Control.Concurrent
+import           Control.Concurrent.Async
 import           Control.Exception.Extensible          (bracket)
 import qualified Control.Exception.Extensible          as E
 import           Control.Monad.IO.Class                (liftIO)
@@ -59,12 +60,11 @@ runDB :: ReaderT SqlBackend (NoLoggingT (ResourceT IO)) a -> IO a
 runDB = runSqlite "db.sqlite"
 
 main :: IO ()
-main = do
-  -- TODO v this must die with its parent thread
-  _ <- forkIO $ Wai.run 3003 $ Wai.logStdout $ compress app
-  runDB $ do
-    runMigration migrateTables
-    liftIO loop
+main =
+  withAsync (Wai.run 3003 $ Wai.logStdout $ compress app) $ \_ ->
+    runDB $ do
+      runMigration migrateTables
+      liftIO loop
 
 compress :: Wai.Middleware
 compress = Wai.gzip Wai.def { Wai.gzipFiles = Wai.GzipCompress }
@@ -75,7 +75,7 @@ app = Servant.serve userAPI server
 userAPI :: Proxy UserAPI
 userAPI = Proxy
 
-type UserAPI = "dailyz" :> Get '[Servant.JSON] [LogItem]
+type UserAPI = "daily" :> Get '[Servant.JSON] [LogItem]
           :<|> "static" :> Servant.Raw
 
 server :: Servant.Server UserAPI

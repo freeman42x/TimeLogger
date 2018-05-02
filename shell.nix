@@ -4,10 +4,11 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, aeson, base, esqueleto, extensible-exceptions
-      , monad-logger, persistent, persistent-sqlite, persistent-template
-      , resourcet, servant, servant-server, stdenv, text, time
-      , transformers, wai, wai-extra, warp, X11
+  f = { mkDerivation, aeson, async, base, esqueleto
+      , extensible-exceptions, monad-logger, persistent
+      , persistent-sqlite, persistent-template, resourcet, servant
+      , servant-server, stdenv, text, time, transformers, wai, wai-extra
+      , warp, X11
       }:
       mkDerivation {
         pname = "TimeLogger";
@@ -16,8 +17,8 @@ let
         isLibrary = false;
         isExecutable = true;
         executableHaskellDepends = [
-          aeson base esqueleto extensible-exceptions monad-logger persistent
-          persistent-sqlite persistent-template resourcet servant
+          aeson async base esqueleto extensible-exceptions monad-logger
+          persistent persistent-sqlite persistent-template resourcet servant
           servant-server text time transformers wai wai-extra warp X11
         ];
         description = "Time logger";
