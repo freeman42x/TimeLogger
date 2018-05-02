@@ -103,13 +103,13 @@ instance ToJSON LogItem
 
 daily :: Servant.Handler [LogItem]
 daily = do
-  tp <- liftIO $ runDB $
+  lis <- liftIO $ runDB $
             select $ from $ \li -> do
                     orderBy [desc (li ^. LogItemId)]
-                    limit 1
-                    return (li ^. LogItemId, li ^. LogItemBegin)
-  let itemBegin = unValue (snd $ head tp)
-  return [ LogItem "yo" itemBegin itemBegin ]
+                    limit 25
+                    return li
+  let logItems = map entityVal lis
+  return logItems
 
 loop :: IO ()
 loop = do
