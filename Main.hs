@@ -69,52 +69,22 @@ compress :: Wai.Middleware
 compress = Wai.gzip Wai.def { Wai.gzipFiles = Wai.GzipCompress }
 
 app :: Wai.Application
-app = Servant.serve userAPI2 server2
--- app =
---     Servant.serve (Proxy @ServerAPI)
---         (static)
-  -- where
-  --   static :: Servant.Server StaticAPI
-  --   static = Servant.serveDirectoryFileServer "static"
+app = Servant.serve userAPI server
 
-server1 :: Servant.Server UserAPI1
-server1 = return users1
-
-userAPI :: Proxy UserAPI1
+userAPI :: Proxy UserAPI
 userAPI = Proxy
 
-type UserAPI1 = "users" :> Get '[Servant.JSON] [User]
-
-userAPI2 :: Proxy UserAPI2
-userAPI2 = Proxy
-
-type UserAPI2 = "users" :> Get '[Servant.JSON] [User]
-           :<|> "albert" :> Get '[Servant.JSON] User
-           :<|> "isaac" :> Get '[Servant.JSON] User
-           :<|> "static" :> Servant.Raw
-
-isaac :: User
-isaac = User "Isaac Newton" 372 "isaac@newton.co.uk"
-
-albert :: User
-albert = User "Albert Einstein" 136 "ae@mc2.org"
-
-users2 :: [User]
-users2 = [isaac, albert]
+type UserAPI = "users" :> Get '[Servant.JSON] [User]
+          :<|> "static" :> Servant.Raw
 
 static :: Servant.Server StaticAPI
 static = Servant.serveDirectoryFileServer "static"
 
-server2 :: Servant.Server UserAPI2
-server2 = return users2
-     :<|> return albert
-     :<|> return isaac
-     :<|> static
+server :: Servant.Server UserAPI
+server = return users
+          :<|> static
 
-type ServerAPI =
-       StaticAPI
-       -- :<|> UserAPI1
-       -- :<|> "users" :> Get '[Servant.JSON] [User]
+type ServerAPI = StaticAPI
 
 type StaticAPI = "static" :> Servant.Raw
 
@@ -126,8 +96,8 @@ data User = User
 
 instance ToJSON User
 
-users1 :: [User]
-users1 =
+users :: [User]
+users =
   [ User "Isaac Newton"    372 "isaac@newton.co.uk"
   , User "Albert Einstein" 136 "ae@mc2.org"
   ]
