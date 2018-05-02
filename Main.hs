@@ -75,7 +75,7 @@ app = Servant.serve userAPI server
 userAPI :: Proxy UserAPI
 userAPI = Proxy
 
-type UserAPI = "daily" :> Get '[Servant.JSON] [LogItem]
+type UserAPI = "dailyz" :> Get '[Servant.JSON] [LogItem]
           :<|> "static" :> Servant.Raw
 
 server :: Servant.Server UserAPI
@@ -86,8 +86,6 @@ static :: Servant.Server StaticAPI
 static = Servant.serveDirectoryFileServer "static"
 
 type StaticAPI = "static" :> Servant.Raw
-
--- TODO return all daily logs
 
 data User = User
   { name  :: String
@@ -101,15 +99,7 @@ data User = User
 --   , end   :: UTCTime
 --   } deriving (Eq, Show, Generic)
 
-instance ToJSON User
-
 instance ToJSON LogItem
-
-users :: [User]
-users =
-  [ User "Isaac Newton"    372 "isaac@newton.co.uk"
-  , User "Albert Einstein" 136 "ae@mc2.org"
-  ]
 
 daily :: Servant.Handler [LogItem]
 daily = do
