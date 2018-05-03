@@ -25,6 +25,7 @@ import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.Function
 import           Data.List                             (null)
+import           Data.Map.Strict                       (fromListWith, toList)
 import           Data.Proxy
 import           Data.Text                             (Text)
 import           Data.Text.Lazy                        (fromStrict, pack,
@@ -111,7 +112,21 @@ logItemToDailyDuration :: LogItem -> DailyDuration
 logItemToDailyDuration li = DailyDuration (logItemTitle li) time
   where time = diffUTCTime (logItemEnd li) (logItemBegin li)
 
--- sum all time intervals having same title
+group :: IO [DailyDuration]
+group = do
+  currentTime <- getCurrentTime
+  let oneDayAgo = addUTCTime (-nominalDay) currentTime
+  runDB $ do
+    lis <- select $ from $ \li -> do
+                   where_ (li ^. LogItemBegin >. val oneDayAgo)
+                   orderBy [desc (li ^. LogItemId)]
+                   return li
+    let logItems = map entityVal lis
+    let dailyDurations = fmap logItemToDailyDuration logItems
+    let dd = fmap (\dailyDuration -> (title dailyDuration, duration dailyDuration)) dailyDurations
+    let dm = fromListWith (+) dd
+    let ddr = fmap (\(title, duration) -> DailyDuration title duration) $ toList dm
+    return $ take 20 $ ddr
 
 loop :: IO ()
 loop = do
