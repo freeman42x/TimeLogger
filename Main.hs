@@ -75,7 +75,7 @@ app = Servant.serve userAPI server
 userAPI :: Proxy UserAPI
 userAPI = Proxy
 
-type UserAPI = "daily" :> Get '[Servant.JSON] [LogItem]
+type UserAPI = "daily" :> Get '[Servant.JSON] [DailyDuration]
           :<|> "static" :> Servant.Raw
 
 server :: Servant.Server UserAPI
@@ -87,15 +87,14 @@ static = Servant.serveDirectoryFileServer "static"
 
 type StaticAPI = "static" :> Servant.Raw
 
-data User = User
-  { name  :: String
-  , age   :: Int
-  , email :: String
+data DailyDuration = DailyDuration
+  { title    :: Text
+  , duration :: Int
   } deriving (Eq, Show, Generic)
 
-instance ToJSON LogItem
+instance ToJSON DailyDuration
 
-daily :: Servant.Handler [LogItem]
+daily :: Servant.Handler [DailyDuration]
 daily = do
   lis <- liftIO $ do
     currentTime <- getCurrentTime
@@ -105,7 +104,10 @@ daily = do
                      orderBy [desc (li ^. LogItemId)]
                      return li
   let logItems = map entityVal lis
-  return logItems
+
+  let dailyDurations = undefined
+
+  return dailyDurations
 
 loop :: IO ()
 loop = do
