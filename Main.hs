@@ -12,10 +12,11 @@ module Main where
 import           Control.Concurrent
 import           Control.Exception.Extensible          (bracket)
 import qualified Control.Exception.Extensible          as E
-import           Control.Monad.IO.Class                (liftIO)
+import           Control.Monad.IO.Class                (MonadIO, liftIO)
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.Resource.Internal
+import           Data.Bifunctor                        (bimap)
 import           Data.Function
 import           Data.List                             (null)
 import           Data.Text                             (Text)
@@ -41,6 +42,8 @@ LogItem
    deriving Show
 |]
 
+data Item = Item { _iId :: LogItemId, _iTitle :: Text }
+
 runDB :: ReaderT SqlBackend (NoLoggingT (ResourceT IO)) a -> IO a
 runDB = runSqlite "db.sqlite"
 
@@ -50,6 +53,14 @@ main =
     runMigration migrateTables
     liftIO loop
 
+selectPreviousLogItem :: MonadIO m => SqlReadT m [Item]
+selectPreviousLogItem = do
+  items <- select $ from $ \li -> do
+            orderBy [desc (li ^. LogItemId)]
+            limit 1
+            return (li ^. LogItemId, li ^. LogItemTitle)
+  return $ fmap (uncurry Item . bimap unValue unValue) items
+
 loop :: IO ()
 loop = do
   d <- openDisplay ""
@@ -57,17 +68,14 @@ loop = do
   currentWindowTitle <- getFocusedWindowTitle d
   closeDisplay d
   runDB $ do
-    previousLogItem <- select $ from $ \li -> do
-            orderBy [desc (li ^. LogItemId)]
-            limit 1
-            return (li ^. LogItemId, li ^. LogItemTitle)
+    previousLogItem <- selectPreviousLogItem
     liftIO $ print currentWindowTitle
     if not (null previousLogItem)
       && (toStrict (pack currentWindowTitle)
-      == unValue (snd $ head previousLogItem)) -- extract / safe Haskell
+      == (_iTitle $ head previousLogItem)) -- extract / safe Haskell
       then do
-        let logItemKey = unValue (fst $ head previousLogItem)
-        let logItemTitle = unValue (snd $ head previousLogItem) -- dedup
+        let logItemKey   = _iId $ head previousLogItem
+        let logItemTitle = _iTitle $ head previousLogItem -- dedup
         update $ \li -> do
            set li [LogItemEnd =. val time]
            where_ (li ^. LogItemId ==. val logItemKey)
