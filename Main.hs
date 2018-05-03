@@ -24,7 +24,7 @@ import           Control.Monad.Trans.Resource.Internal
 import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.Function
-import           Data.List                             (null)
+import           Data.List                             (null, sortOn)
 import           Data.Map.Strict                       (fromListWith, toList)
 import           Data.Proxy
 import           Data.Text                             (Text)
@@ -125,8 +125,8 @@ group = do
     let dailyDurations = fmap logItemToDailyDuration logItems
     let dd = fmap (\dailyDuration -> (title dailyDuration, duration dailyDuration)) dailyDurations
     let dm = fromListWith (+) dd
-    let ddr = fmap (\(title, duration) -> DailyDuration title duration) $ toList dm
-    return $ take 20 $ ddr
+    let ddr = uncurry DailyDuration <$> toList dm
+    return $ take 20 $ reverse $ sortOn duration ddr
 
 loop :: IO ()
 loop = do
