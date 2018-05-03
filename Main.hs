@@ -109,7 +109,7 @@ daily = do
   let dd = fmap (\dailyDuration -> (label dailyDuration, value dailyDuration)) dailyDurations
   let dm = fromListWith (+) dd
   let ddr = uncurry DailyDuration <$> toList dm
-  return $ reverse $ sortOn value ddr
+  return $ take 20 $ reverse $ sortOn value ddr
 
 logItemToDailyDuration :: LogItem -> DailyDuration
 logItemToDailyDuration li = DailyDuration (logItemTitle li) time
