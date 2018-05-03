@@ -89,8 +89,8 @@ static = Servant.serveDirectoryFileServer "static"
 type StaticAPI = "static" :> Servant.Raw
 
 data DailyDuration = DailyDuration
-  { title    :: Text
-  , duration :: NominalDiffTime
+  { label :: Text
+  , value :: NominalDiffTime
   } deriving (Eq, Show, Generic)
 
 instance ToJSON DailyDuration
@@ -106,10 +106,10 @@ daily = do
                      return li
   let logItems = map entityVal lis
   let dailyDurations = fmap logItemToDailyDuration logItems
-  let dd = fmap (\dailyDuration -> (title dailyDuration, duration dailyDuration)) dailyDurations
+  let dd = fmap (\dailyDuration -> (label dailyDuration, value dailyDuration)) dailyDurations
   let dm = fromListWith (+) dd
   let ddr = uncurry DailyDuration <$> toList dm
-  return $ reverse $ sortOn duration ddr
+  return $ reverse $ sortOn value ddr
 
 logItemToDailyDuration :: LogItem -> DailyDuration
 logItemToDailyDuration li = DailyDuration (logItemTitle li) time
