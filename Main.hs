@@ -89,7 +89,7 @@ type StaticAPI = "static" :> Servant.Raw
 
 data DailyDuration = DailyDuration
   { title    :: Text
-  , duration :: Int
+  , duration :: NominalDiffTime
   } deriving (Eq, Show, Generic)
 
 instance ToJSON DailyDuration
@@ -108,7 +108,10 @@ daily = do
   return dailyDurations
 
 logItemToDailyDuration :: LogItem -> DailyDuration
-logItemToDailyDuration li = DailyDuration (logItemTitle li) undefined
+logItemToDailyDuration li = DailyDuration (logItemTitle li) time
+  where time = diffUTCTime (logItemEnd li) (logItemBegin li)
+
+-- sum all time intervals having same title
 
 loop :: IO ()
 loop = do
