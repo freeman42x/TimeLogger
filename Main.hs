@@ -106,27 +106,14 @@ daily = do
                      return li
   let logItems = map entityVal lis
   let dailyDurations = fmap logItemToDailyDuration logItems
-  return dailyDurations
+  let dd = fmap (\dailyDuration -> (title dailyDuration, duration dailyDuration)) dailyDurations
+  let dm = fromListWith (+) dd
+  let ddr = uncurry DailyDuration <$> toList dm
+  return $ reverse $ sortOn duration ddr
 
 logItemToDailyDuration :: LogItem -> DailyDuration
 logItemToDailyDuration li = DailyDuration (logItemTitle li) time
   where time = diffUTCTime (logItemEnd li) (logItemBegin li)
-
-group :: IO [DailyDuration]
-group = do
-  currentTime <- getCurrentTime
-  let oneDayAgo = addUTCTime (-nominalDay) currentTime
-  runDB $ do
-    lis <- select $ from $ \li -> do
-                   where_ (li ^. LogItemBegin >. val oneDayAgo)
-                   orderBy [desc (li ^. LogItemId)]
-                   return li
-    let logItems = map entityVal lis
-    let dailyDurations = fmap logItemToDailyDuration logItems
-    let dd = fmap (\dailyDuration -> (title dailyDuration, duration dailyDuration)) dailyDurations
-    let dm = fromListWith (+) dd
-    let ddr = uncurry DailyDuration <$> toList dm
-    return $ take 20 $ reverse $ sortOn duration ddr
 
 loop :: IO ()
 loop = do
