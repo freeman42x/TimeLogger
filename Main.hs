@@ -104,10 +104,11 @@ daily = do
                      orderBy [desc (li ^. LogItemId)]
                      return li
   let logItems = map entityVal lis
-
-  let dailyDurations = undefined
-
+  let dailyDurations = fmap logItemToDailyDuration logItems
   return dailyDurations
+
+logItemToDailyDuration :: LogItem -> DailyDuration
+logItemToDailyDuration li = DailyDuration (logItemTitle li) undefined
 
 loop :: IO ()
 loop = do
