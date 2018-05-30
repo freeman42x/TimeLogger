@@ -5,7 +5,9 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE PartialTypeSignatures      #-}
 {-# LANGUAGE QuasiQuotes                #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE TypeFamilies               #-}
@@ -24,6 +26,7 @@ import           Control.Monad.Trans.Resource.Internal
 import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.Function
+import           Data.IORef
 import           Data.List                             (null, sortOn)
 import           Data.Map.Strict                       (fromListWith, toList)
 import           Data.Proxy
@@ -39,6 +42,8 @@ import           Database.Persist.TH                   (mkMigrate, mkPersist,
                                                         sqlSettings)
 import           Debug.Trace
 import           GHC.Generics                          (Generic)
+import qualified Graphics.UI.Gtk                       as Gtk
+import           Graphics.UI.Gtk.Display.StatusIcon
 import           Graphics.X11
 import           Graphics.X11.Xlib.Extras
 import qualified Network.Wai                           as Wai
@@ -48,6 +53,33 @@ import qualified Network.Wai.Middleware.RequestLogger  as Wai
 import           Servant                               ((:<|>) (..), (:>), Get)
 import qualified Servant
 import           System.IO.Error                       (catchIOError)
+
+main = do
+  Gtk.initGUI
+  ref <- newIORef =<< statusIconNewFromStock Gtk.stockSave
+  icon <- readIORef ref
+  statusIconSetVisible icon True
+  statusIconSetTooltipText icon $ Just ("This is a test" :: String)
+  menu <- mkmenu icon
+  Gtk.on icon statusIconPopupMenu $ \b a -> do
+         Gtk.widgetShowAll menu
+         print (b,a)
+         Gtk.menuPopup menu $ maybe Nothing (\b' -> Just (b',a)) b
+  Gtk.on icon statusIconActivate $
+         putStrLn "'activate' signal triggered"
+  Gtk.mainGUI
+  readIORef ref    -- Necessary.
+  return ()
+
+mkmenu s = do
+  m <- Gtk.menuNew
+  mapM_ (mkitem m) [("Quit" :: String, Gtk.mainQuit)]
+  return m
+    where
+        mkitem menu (label,act) =
+            do i <- Gtk.menuItemNewWithLabel label
+               Gtk.menuShellAppend menu i
+               Gtk.on i Gtk.menuItemActivated act
 
 share [mkPersist sqlSettings, mkMigrate "migrateTables"] [persistLowerCase|
 LogItem
@@ -60,12 +92,12 @@ LogItem
 runDB :: ReaderT SqlBackend (NoLoggingT (ResourceT IO)) a -> IO a
 runDB = runSqlite "db.sqlite"
 
-main :: IO ()
-main =
-  withAsync (Wai.run 3003 $ Wai.logStdout $ compress app) $ \_ ->
-    runDB $ do
-      runMigration migrateTables
-      liftIO loop
+-- main :: IO ()
+-- main =
+--   withAsync (Wai.run 3003 $ Wai.logStdout $ compress app) $ \_ ->
+--     runDB $ do
+--       runMigration migrateTables
+--       liftIO loop
 
 compress :: Wai.Middleware
 compress = Wai.gzip Wai.def { Wai.gzipFiles = Wai.GzipCompress }

@@ -40,5 +40,6 @@ executable TimeLogger
     , aeson
     , async
     , containers
+    , gtk
   -- hs-source-dirs:
   default-language:    Haskell2010
