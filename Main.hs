@@ -54,7 +54,23 @@ import           Servant                               ((:<|>) (..), (:>), Get)
 import qualified Servant
 import           System.IO.Error                       (catchIOError)
 
-main = do
+share [mkPersist sqlSettings, mkMigrate "migrateTables"] [persistLowerCase|
+LogItem
+   title    Text
+   begin    UTCTime
+   end      UTCTime
+   deriving Eq Show Generic
+|]
+
+main :: IO ()
+main =
+  withAsync runTray $ \_ ->
+    withAsync (Wai.run 3003 $ Wai.logStdout $ compress app) $ \_ ->
+      runDB $ do
+        runMigration migrateTables
+        liftIO loop
+
+runTray = do
   Gtk.initGUI
   ref <- newIORef =<< statusIconNewFromStock Gtk.stockSave
   icon <- readIORef ref
@@ -81,23 +97,8 @@ mkmenu s = do
                Gtk.menuShellAppend menu i
                Gtk.on i Gtk.menuItemActivated act
 
-share [mkPersist sqlSettings, mkMigrate "migrateTables"] [persistLowerCase|
-LogItem
-   title    Text
-   begin    UTCTime
-   end      UTCTime
-   deriving Eq Show Generic
-|]
-
 runDB :: ReaderT SqlBackend (NoLoggingT (ResourceT IO)) a -> IO a
 runDB = runSqlite "db.sqlite"
-
--- main :: IO ()
--- main =
---   withAsync (Wai.run 3003 $ Wai.logStdout $ compress app) $ \_ ->
---     runDB $ do
---       runMigration migrateTables
---       liftIO loop
 
 compress :: Wai.Middleware
 compress = Wai.gzip Wai.def { Wai.gzipFiles = Wai.GzipCompress }
