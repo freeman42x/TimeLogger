@@ -8,7 +8,7 @@ let
       , extensible-exceptions, monad-logger, persistent
       , persistent-sqlite, persistent-template, resourcet, servant
       , servant-server, stdenv, text, time, transformers, wai, wai-extra
-      , warp, X11, gtk
+      , warp, X11, gtk, open-browser
       }:
       mkDerivation {
         pname = "TimeLogger";
@@ -20,7 +20,7 @@ let
           aeson async base containers esqueleto extensible-exceptions
           monad-logger persistent persistent-sqlite persistent-template
           resourcet servant servant-server text time transformers wai
-          wai-extra warp X11 gtk
+          wai-extra warp X11 gtk open-browser
         ];
         description = "Time logger";
         license = stdenv.lib.licenses.mit;

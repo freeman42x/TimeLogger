@@ -41,5 +41,6 @@ executable TimeLogger
     , async
     , containers
     , gtk
+    , open-browser
   -- hs-source-dirs:
   default-language:    Haskell2010

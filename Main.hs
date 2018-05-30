@@ -53,6 +53,7 @@ import qualified Network.Wai.Middleware.RequestLogger  as Wai
 import           Servant                               ((:<|>) (..), (:>), Get)
 import qualified Servant
 import           System.IO.Error                       (catchIOError)
+import           Web.Browser                           (openBrowser)
 
 share [mkPersist sqlSettings, mkMigrate "migrateTables"] [persistLowerCase|
 LogItem
@@ -81,8 +82,9 @@ runTray = do
          Gtk.widgetShowAll menu
          print (b,a)
          Gtk.menuPopup menu $ maybe Nothing (\b' -> Just (b',a)) b
-  Gtk.on icon statusIconActivate $
-         putStrLn "'activate' signal triggered"
+  Gtk.on icon statusIconActivate $ do
+      openBrowser "http://localhost:3003/static/index.html"
+      return ()
   Gtk.mainGUI
   readIORef ref    -- Necessary.
   return ()
