@@ -76,11 +76,10 @@ runTray = do
   ref <- newIORef =<< statusIconNewFromStock Gtk.stockSave
   icon <- readIORef ref
   statusIconSetVisible icon True
-  statusIconSetTooltipText icon $ Just ("This is a test" :: String)
+  statusIconSetTooltipText icon $ Just ("Time Logger" :: String)
   menu <- mkmenu icon
   Gtk.on icon statusIconPopupMenu $ \b a -> do
          Gtk.widgetShowAll menu
-         print (b,a)
          Gtk.menuPopup menu $ maybe Nothing (\b' -> Just (b',a)) b
   Gtk.on icon statusIconActivate $ do
       openBrowser "http://localhost:3003/static/index.html"
