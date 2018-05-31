@@ -18,21 +18,17 @@ module Main where
 import           Control.Concurrent
 import           Control.Concurrent.Async
 import           Control.Exception.Extensible          (bracket)
-import qualified Control.Exception.Extensible          as E
 import           Control.Monad.IO.Class                (liftIO)
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.Resource.Internal
 import           Data.Aeson
-import           Data.Aeson.Types
-import           Data.Function
 import           Data.IORef
 import           Data.List                             (null, sortOn)
 import           Data.Map.Strict                       (fromListWith, toList)
 import           Data.Proxy
 import           Data.Text                             (Text)
-import           Data.Text.Lazy                        (fromStrict, pack,
-                                                        toStrict)
+import           Data.Text.Lazy                        (pack, toStrict)
 import           Data.Time.Clock
 import           Database.Esqueleto
 import           Database.Persist                      (insert)
@@ -104,8 +100,8 @@ mkmenu = do
   mapM_ (mkitem m) [("Quit" :: String, Gtk.mainQuit)]
   return m
     where
-        mkitem menu (label, act) =
-            do i <- Gtk.menuItemNewWithLabel label
+        mkitem menu (labelName, act) =
+            do i <- Gtk.menuItemNewWithLabel labelName
                Gtk.menuShellAppend menu i
                Gtk.on i Gtk.menuItemActivated act
 
@@ -143,8 +139,8 @@ instance ToJSON DailyDuration
 daily :: Servant.Handler [DailyDuration]
 daily = do
   lis <- liftIO $ do
-    currentTime <- getCurrentTime
-    let oneDayAgo = addUTCTime (-nominalDay) currentTime
+    timeNow <- getCurrentTime
+    let oneDayAgo = addUTCTime (-nominalDay) timeNow
     runDB $ select $ from $ \li -> do
                      where_ (li ^. LogItemBegin >. val oneDayAgo)
                      orderBy [desc (li ^. LogItemId)]
