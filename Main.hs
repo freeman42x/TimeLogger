@@ -40,7 +40,6 @@ import           Database.Persist.Sqlite               (runMigration, runSqlite)
 import           Database.Persist.TH                   (mkMigrate, mkPersist,
                                                         persistLowerCase, share,
                                                         sqlSettings)
-import           Debug.Trace
 import           GHC.Generics                          (Generic)
 import qualified Graphics.UI.Gtk                       as Gtk
 import           Graphics.UI.Gtk.Display.StatusIcon
@@ -68,40 +67,44 @@ main = do
   a <- asyncBound runTray
   b <- async runWarp
   c <- async runMain
-  waitAnyCancel [a, b, c]
+  _ <- waitAnyCancel [a, b, c]
   return ()
 
+runWarp :: IO ()
 runWarp =
   Wai.run 3003 $ Wai.logStdout $ compress app
 
+runMain :: IO ()
 runMain =
   runDB $ do
     runMigration migrateTables
     liftIO loop
 
+runTray :: IO ()
 runTray = do
-  Gtk.initGUI
+  _ <- Gtk.initGUI
   ref <- newIORef =<< statusIconNewFromStock Gtk.stockSave
   icon <- readIORef ref
   statusIconSetVisible icon True
   statusIconSetTooltipText icon $ Just ("Time Logger" :: String)
-  menu <- mkmenu icon
-  Gtk.on icon statusIconPopupMenu $ \b a -> do
+  menu <- mkmenu
+  _ <- Gtk.on icon statusIconPopupMenu $ \b a -> do
          Gtk.widgetShowAll menu
          Gtk.menuPopup menu $ maybe Nothing (\b' -> Just (b',a)) b
-  Gtk.on icon statusIconActivate $ do
-      openBrowser "http://localhost:3003/static/index.html"
+  _ <- Gtk.on icon statusIconActivate $ do
+      _ <- openBrowser "http://localhost:3003/static/index.html"
       return ()
   Gtk.mainGUI
-  readIORef ref    -- Necessary.
+  _ <- readIORef ref    -- Necessary.
   return ()
 
-mkmenu s = do
+mkmenu :: IO Gtk.Menu
+mkmenu = do
   m <- Gtk.menuNew
   mapM_ (mkitem m) [("Quit" :: String, Gtk.mainQuit)]
   return m
     where
-        mkitem menu (label,act) =
+        mkitem menu (label, act) =
             do i <- Gtk.menuItemNewWithLabel label
                Gtk.menuShellAppend menu i
                Gtk.on i Gtk.menuItemActivated act
@@ -171,15 +174,14 @@ loop = do
     liftIO $ print currentWindowTitle
     if not (null previousLogItem)
       && (toStrict (pack currentWindowTitle)
-      == unValue (snd $ head previousLogItem)) -- extract / safe Haskell
+      == unValue (snd $ head previousLogItem))
       then do
         let logItemKey = unValue (fst $ head previousLogItem)
-        let logItemTitle = unValue (snd $ head previousLogItem) -- dedup
         update $ \li -> do
            set li [LogItemEnd =. val time]
            where_ (li ^. LogItemId ==. val logItemKey)
       else do
-        insert $ LogItem (toStrict $ pack currentWindowTitle) time time -- dedup
+        _ <- insert $ LogItem (toStrict $ pack currentWindowTitle) time time -- dedup
         return ()
   threadDelay 1000000
   loop
