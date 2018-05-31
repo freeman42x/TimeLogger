@@ -64,12 +64,20 @@ LogItem
 |]
 
 main :: IO ()
-main =
-  withAsync runTray $ \_ ->
-    withAsync (Wai.run 3003 $ Wai.logStdout $ compress app) $ \_ ->
-      runDB $ do
-        runMigration migrateTables
-        liftIO loop
+main = do
+  a <- asyncBound runTray
+  b <- async runWarp
+  c <- async runMain
+  waitAnyCancel [a, b, c]
+  return ()
+
+runWarp =
+  Wai.run 3003 $ Wai.logStdout $ compress app
+
+runMain =
+  runDB $ do
+    runMigration migrateTables
+    liftIO loop
 
 runTray = do
   Gtk.initGUI

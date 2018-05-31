@@ -44,3 +44,5 @@ executable TimeLogger
     , open-browser
   -- hs-source-dirs:
   default-language:    Haskell2010
+
+  ghc-options: -threaded
